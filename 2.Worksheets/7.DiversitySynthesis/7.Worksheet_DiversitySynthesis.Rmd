@@ -1,6 +1,6 @@
 ---
 title: '7\. Worksheet: Diversity Synthesis'
-author: "Student Name; Z620: Quantitative Biodiversity, Indiana University"
+author: "Jonathan Enriquez Madrid; Z620: Quantitative Biodiversity, Indiana University"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output: pdf_document
 geometry: margin=2.54cm
@@ -71,7 +71,60 @@ In smaller groups, take 15 minutes to brainstorm questions, code, statistical te
 
 **Answer 1:** Use the space below to generate a rarefaction curve/sample coverage based on the data we collected in class for each community. Make sure to annotate your code using # symbols so others (including instructors) understand what you have done and why you have done it. 
 
+**Answer 1:** Based on the rarefaction curve, community A and community B seem to differ in how many number of species each holds. The curves for community A (lines 1-4) are higher on the graph than the curves for community B (lines 5-8) when looking at certain sample sizes, meaning that community A seems to hold more species than community B. Going deeper, and looking at the sites within the communities, we see that the sites also differ in the number of species they hold. Within community A, site 1 has the most number of species, followed by site 2, followed by site 3, and finally site 4 having the lowest number of species. Within community B, site 8 has the greatest number of species, followed by both site 6 and 7 (which seem to have around the same number of species), and finally site 5. Again, this is dependent on the sample size that one is looking at on the x-axis. As for the number of species in sites across communities, the site with the highest number of species is site 1, followed by site 2, followed by site 3 , followed by site 8, followed by sites 6 and 7, followed by site 4, and then finally site 5. This is a general observation from the rarefaction curves, without knowing if any of the differences are significant.
+  As for coverage, the sites in each community seem to be sampled well. The lowest coverage in community A was site 2 at 0.72, while the highest coverage was at site 4 at 0.95. As for community B, the lowest coverage was for site 6 at 0.85, and the highest coverage was at site 5 at 0.92.  
+
+
+Clear environment, set working directory, & load packages
 ```{r}
+rm(list = ls())
+getwd()
+setwd("C:/Users/jonat/GitHub/QB2023_Enriquez_Madrid/2.Worksheets/7.DiversitySynthesis")
+package.list <- c('vegan','ggplot2','dplyr')
+for (package in package.list) {
+  if (!require(package, character.only = TRUE, quietly = TRUE)) {
+    install.packages(package)
+  }
+  library(c(package), character.only = TRUE)
+}
+```
+
+Import data, subset data, & change to numeric
+```{r}
+dat <- read.csv(file = "C:\\Users\\jonat\\OneDrive\\Documents\\Quantitative Biodiversity\\QB Data Wrangling Lab SP23.csv")#Import data
+
+dat1 <- dat[1:8,]#Get rid of columns with N/A
+str(dat1)#Look at structure of data
+
+dat1_species_only <- dat1[,3:32]#get rid of character columns "Community" and "Name"
+
+dat1_species_only [1:30] = lapply(dat1_species_only[1:30], FUN = function(y){as.numeric(y)})#Convert species numbers to numeric
+
+str(dat1_species_only)
+
+dat_A <- dat1_species_only[1:4,]#Subset of data, community A
+dat_B <- dat1_species_only[5:8,]#Subset of data, community B
+```
+
+Rarefaction curve
+```{r}
+min.N <- min(rowSums(dat1_species_only))
+
+dat.Rarefaction <- rarefy(x = dat1_species_only, sample = min.N, se = TRUE)#Rarefying species numbers
+
+rarecurve(x = dat1_species_only, step = 20, col = "blue", cex = 0.6, las = 1)
+abline(0, 1, col = 'red')
+text(1500, 1500, "1:1", pos = 2, col = 'red')#Rarefaction curve/plot
+```
+
+Checking sample covergae
+```{r}
+Coverage <- function(x = ""){
+  1 - (rowSums(x == 1) / rowSums(x))
+}#Code for checking sample coverage
+
+Coverage(dat_A)#Coverage of community A
+Coverage(dat_B)#Coverage of community B
 ```
 
 
@@ -83,16 +136,38 @@ What is the variation among the samples in your group and between the communitie
 
 **Answer 2a - Analysis:** Use the space below for code that is being used to analyze your data and test your hypotheses on your chosen alpha diversity tool. Make sure to annotate your code using # symbols so others (including instructors) understand what you have done and why you have done it.
 
+
+**Answer 2a:**The alpha diversity measure that I used was Shannon's diversity. I am testing the null hypothesis in where there should be no difference between sites in terms of their species richness and evenness. I checked Shannon's diversity for both communities A and B, and for each site within each community. A higher Shannon's diversity index indicates that there is a higher chance of finding a new species, and thus having greater species richness. Richness across sites, across communities, and within communities differ. In community A, site 1 has the largest Shannon's diversity index, followed by site 2, then site 4, and then finally site 3. For community B, site 8 has the largest Shannon's diversity index, followed by site 7, then site 6, and finally site 5. This shows us that the different sites have differences in their alpha diversity (species richness) and rejects the null hypothesis of there being no difference in richness between sites. However, these findings are just descriptive and we don't know if the differences are significant.    
+
+
+Alpha diversity analysis
 ```{r}
+diversity(dat_A, index = "shannon")#Shannon diversity for community A
+diversity(dat_B, index = "shannon")#Shannon diversity for community B
 ```
 
 **Answer 2b - Plot:** With your analysis, create one (and only one, although it can have multiple panels) *publication-quality* figure.
 
 ```{r}
+SEM <- function(x) {
+  return(sd(x)/sqrt(length(x)))
+}#Code for finding the SEM
+
+com_div_all <- t(cbind.data.frame(dat_A, dat_B))#Combining community A and community B data
+
+View(com_div_all)
+
+com_div_sum_apply <- t(apply(com_div_all, 1, FUN = function(x)
+{ c(mean = mean(x), SEM = sd(x)/sqrt(length(x)))}))#Finding mean and SEM of both community A & community B
+
+RACresults <- radfit(dat1_species_only)#Running Rank abundance curve (RAC). RAC looks at 
+plot.new()
+plot(RACresults, las = 1, cex.lab = 1.4, cex.axis = 1.25)#Plotting RAC
 ```
 
 **Answer 2c - Interpret results:** Write an informative yet succinct (~5 sentences) caption that creates a "stand-alone" figure. Take a peek at figures and figure captions in a paper published in your favorite journal for inspiration.
 
+**Answer 2c:** The figure presented shows the rank abundance curves (RAC) of each site within each community. Each RAC plot in the figure coincides with a site. Plot 1 is for site 1, plot 2 is for site 2, plot 3 is for site 3 and so on. The RAC plots depict species richness and evenness at each site. Richness is depicted by the y-axis, while evenness is depicted by the curve, where a steeper curve indicates less evenness. By looking across sites, we see that the RAC plots differ between sites, meaning that sites differ in their evenness and richness. Sites 1, 2, 5, and 6 are depicted by a preemtion model, site 3 and 7 depicted by a Zipf model, and sites 4 and 8 depicted by a lognormal model. Sites 1, 2, 5, and 6 are similar to each other, sites 3 and 7 are similar to each other, and sites 4 and 8 are similar to each other.  
 
 ### 3) Beta diversity
 
@@ -102,17 +177,60 @@ Can you detect compositional differences between each source community sampled?
 
 **Answer 3a - Analysis:** Use the space below for code that is being used to analyze your data and test your hypotheses on your chosen beta diversity tool. Make sure to annotate your code using # symbols so others (including instructors) understand what you have done and why you have done it.
 
+**Answer 3a:** I will test the null hypothesis that there is no difference in composition between each site and each community. I will use the Bray-Curtis dissimilarity metric to test if there are differences in composition between sites and communities. The Bray-Curtis dissimilarity analysis shows that the sites do differ in their composition. The heatmap also shows that sites differ in their composition to one another. The PCoA plot shows that sites differ in their composition based on the community they are from as sites 1, 2, 3, and 4 (which make up Community A) are clustered together, and sites 5, 6, 7, and 8 (which make up community B) are clustered together. In addition, a Permanova shows that community has a significant affect on site, showing support for sites differing in their composition based on the community they are from.  
+
+Beta diversity analysis
 ```{r}
+dat1_species_only.b <- vegdist(dat1_species_only, method = "bray")#Runs Bray-Curtis Dissimilarity (abundance data). Seeing how dissimalr sites are to one another. 1 = complete dissimilarity & 0 = complete similarity.
+
+library(vegan)
+community <- c(rep("A", 4), rep("B", 4))#Creates 'factors' vector
+adonis2(dat1_species_only ~ community, method = "bray", permutations = 999)#Runs Permanova on species by community. 
+
+
 ```
 
 **Answer 3b - Plot:** With your analysis, create one (and only one, although it can have multiple panels) *publication-quality* figure.  
 
+Heat map
 ```{r}
+library(lattice)
+order <- rev(attr(dat1_species_only.b, "Labels"))#defines order of sites
+levelplot(as.matrix(dat1_species_only.b) [, order], aspect = "iso", col.regions = ,
+          xlab = "Species Site", ylab = "Species Site", scales = list(cex = 0.5),
+          main = "Bray-Curtis Distance")#Code for making heat map
+```
+
+PCoA plot
+```{r}
+dat1_species_only.pcoa <- cmdscale(dat1_species_only.b, eig = TRUE, k = 3)#Conducts PCoA
+
+explainvar1 <- round(dat1_species_only.pcoa$eig[1] / sum(dat1_species_only.pcoa$eig), 3) * 100
+explainvar2 <- round(dat1_species_only.pcoa$eig[2] / sum(dat1_species_only.pcoa$eig), 3) * 100
+explainvar3 <- round(dat1_species_only.pcoa$eig[3] / sum(dat1_species_only.pcoa$eig), 3) *100
+sum.eig <- sum(explainvar1, explainvar2, explainvar3)#Quantifies the percent variation in the data set that is explained by the first three axes of the PCoA.
+
+par(mar = c(5, 5, 1, 2) + 0.1)#Defines plot parameters
+
+plot(dat1_species_only.pcoa$points[ ,1], dat1_species_only.pcoa$points[ ,2], ylim = c(-0.3, 0.7),
+     xlab = paste("PCoA 1 (", explainvar1, "%)", sep = ""),
+ylab = paste("PCoA 2 (", explainvar2, "%)", sep = ""),
+pch = 16, cex = 2.0, type = "n", cex.lab = 1.5,
+cex.axis = 1.2, axes = FALSE)#Initiates plot
+
+axis(side = 1, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1)
+axis(side = 2, labels = T, lwd.ticks = 2, cex.axis = 1.2, las = 1)
+abline(h = 0, v = 0, lty = 3)
+box(lwd = 2)#Adds axes
+
+points(dat1_species_only.pcoa$points[ ,1], dat1_species_only.pcoa$points[ ,2], pch = 19, cex = 3, bg = "grey", col = "grey")
+text(dat1_species_only.pcoa$points[ ,1], dat1_species_only.pcoa$points[ ,2], labels = row.names(dat1_species_only.pcoa$points))#Adds points & labels
+
 ```
 
 **Answer 3c - Interpret results:** Write an informative yet succinct (~5 sentences) caption that creates a "stand-alone" figure. Take a peek at figures and figure captions in a paper published in your favorite journal for inspiration.
 
-
+**Answer 3c:** I'll be explaining the PCoA plot. The PCoA plot shows the different sites cluster together along the x-axis which explains 41.3% of the variation. Being that all the sites that are clustered to the left are all sites in community A, and all the sites that are clustered to the right are in community B, I would assume that the sites are clustering based on the community they are found, and that community is what is being portrayed on the x-axis. In addition, the Permanova shows that community has a significant affect on site, which is in accordance with what the PCoA plot shows.  
 ## SUBMITTING YOUR ASSIGNMENT
 Use Knitr to create a PDF of your completed 7.DiversitySynthesis_Worksheet.Rmd document, push it to GitHub, and create a pull request.
 Please make sure your updated repo includes both the pdf and RMarkdown files.
